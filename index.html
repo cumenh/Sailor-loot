@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sailor Piece — Loot Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b10;--card:#111820;--border:#1e2a35;
+  --accent:#00c8ff;--accent2:#ff6b35;--gold:#ffd166;
+  --text:#d0dde8;--muted:#4a6070;--success:#00e5a0;--danger:#ff4757;
+}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(ellipse at 30% 20%,rgba(0,200,255,.05) 0%,transparent 50%),
+             radial-gradient(ellipse at 70% 80%,rgba(255,107,53,.05) 0%,transparent 50%);
+  pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:16px}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 0;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.hdr h1{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase}
+.hdr-sub{margin-top:3px;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.dot.live{background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite}
+.dot.err{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.spin{display:inline-block;animation:rot 1s linear infinite;font-size:13px}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 10px;text-align:center}
+.sv{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);line-height:1}
+.sv.g{color:var(--gold)}.sv.o{color:var(--accent2)}
+.sl{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+
+/* CONTROLS */
+.ctrl{display:flex;gap:8px;margin-bottom:14px}
+.srch{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none}
+.srch:focus{border-color:var(--accent)}
+.srch::placeholder{color:var(--muted)}
+.sbtn{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;padding:9px 12px;cursor:pointer;font-family:'Rajdhani',sans-serif;white-space:nowrap}
+.sbtn.on{border-color:var(--accent);color:var(--accent)}
+.rbtn{background:none;border:1px solid var(--border);border-radius:8px;color:var(--danger);font-size:14px;padding:9px 10px;cursor:pointer}
+
+/* SECTION */
+.sec{font-family:'Rajdhani',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* CARDS */
+#grid{display:flex;flex-direction:column;gap:8px}
+.lc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:12px;animation:si .3s ease;transition:border .2s}
+.lc:hover{border-color:rgba(0,200,255,.3)}
+.lc.nw{border-color:var(--accent);animation:glow .8s ease}
+@keyframes si{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes glow{0%,100%{box-shadow:none}50%{box-shadow:0 0 16px rgba(0,200,255,.3)}}
+
+.iw{width:44px;height:44px;border-radius:8px;background:#0e1318;border:1px solid var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px}
+.iw img{width:100%;height:100%;object-fit:cover}
+.ii{flex:1;min-width:0}
+.in{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.is{font-size:11px;color:var(--muted);margin-top:2px}
+.iq{text-align:right;flex-shrink:0}
+.qt{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);line-height:1}
+.qi{font-size:10px;color:var(--muted);margin-top:2px}
+
+.r-common{color:#aaa}.r-uncommon{color:#4caf50}.r-rare{color:#2196f3}
+.r-epic{color:#9c27b0}.r-legendary{color:var(--gold)}.r-mythical{color:var(--accent2)}.r-secret{color:var(--accent)}
+
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty .ico{font-size:40px;margin-bottom:12px}
+.empty p{font-size:13px;line-height:1.6}
+
+.lu{text-align:center;font-size:11px;color:var(--muted);margin-top:20px;padding-bottom:20px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--text);transition:transform .3s;z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div>
+      <h1>⚓ Loot Dashboard</h1>
+      <div class="hdr-sub">
+        <div class="dot" id="dot"></div>
+        <span id="stxt" style="font-size:11px;color:var(--muted)">Memuat...</span>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">
+      <span id="spin" style="display:none" class="spin">↻</span>
+      <span id="cd"></span>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="sc"><div class="sv" id="s1">0</div><div class="sl">Item Types</div></div>
+    <div class="sc"><div class="sv g" id="s2">0</div><div class="sl">Total Drop</div></div>
+    <div class="sc"><div class="sv o" id="s3">0</div><div class="sl">Rare+</div></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="ctrl">
+    <input class="srch" type="text" id="q" placeholder="Cari item..." oninput="render()" />
+    <button class="sbtn" id="sb" onclick="toggleSort()">QTY ↓</button>
+    <button class="rbtn" onclick="doReset()" title="Reset">🗑</button>
+  </div>
+
+  <div class="sec">Item Terkumpul</div>
+  <div id="grid">
+    <div class="empty"><div class="ico">⏳</div><p>Memuat data...</p></div>
+  </div>
+
+  <div class="lu" id="lu"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONFIG =====
+const BIN_ID  = "69d3775aaaba882197cba5d1";
+const API_KEY = "$2a$10$mZcNEso9E46w8PZMl/W3TO7TRzJGP3pSVvlYJxv5HolUgXs49EUH6";
+const BASE    = "https://api.jsonbin.io/v3/b/" + BIN_ID;
+// ==================
+
+let data = {};
+let sort = 'qty';
+let iv   = null;
+let cd   = 10;
+
+startPoll();
+
+function startPoll() {
+  if (iv) clearInterval(iv);
+  fetchData();
+  cd = 10;
+  iv = setInterval(() => {
+    cd--;
+    document.getElementById('cd').textContent = cd + 's';
+    if (cd <= 0) { fetchData(); cd = 10; }
+  }, 1000);
+}
+
+async function fetchData() {
+  document.getElementById('spin').style.display = 'inline-block';
+  try {
+    const r = await fetch(BASE + '/latest', {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    if (!r.ok) throw 0;
+    const json = await r.json();
+    const prev = Object.keys(data);
+    data = json.record || {};
+    const nw = Object.keys(data).filter(k => !prev.includes(k));
+    setConn(true);
+    render(nw);
+    updateStats();
+    const t = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('lu').textContent = 'Update: ' + t;
+  } catch(e) {
+    setConn(false);
+  }
+  document.getElementById('spin').style.display = 'none';
+}
+
+function setConn(ok) {
+  document.getElementById('dot').className = 'dot ' + (ok ? 'live' : 'err');
+  const txt = document.getElementById('stxt');
+  txt.textContent = ok ? 'Live' : 'Gagal konek';
+  txt.style.color = ok ? 'var(--success)' : 'var(--danger)';
+}
+
+function updateStats() {
+  const items = Object.values(data);
+  const tot   = items.reduce((s,i) => s + (i.total_quantity||0), 0);
+  const rare  = items.filter(i => ['legendary','mythical','epic','secret'].includes((i.rarity||'').toLowerCase())).length;
+  document.getElementById('s1').textContent = items.length;
+  document.getElementById('s2').textContent = tot > 999 ? (tot/1000).toFixed(1)+'k' : tot;
+  document.getElementById('s3').textContent = rare;
+}
+
+function render(nw=[]) {
+  const grid = document.getElementById('grid');
+  const q    = document.getElementById('q').value.toLowerCase();
+  let items  = Object.entries(data);
+  if (q) items = items.filter(([k]) => k.toLowerCase().includes(q));
+  if (sort==='qty') items.sort((a,b)=>(b[1].total_quantity||0)-(a[1].total_quantity||0));
+  else items.sort((a,b)=>a[0].localeCompare(b[0]));
+
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty"><div class="ico">${q?'🔍':'📦'}</div><p>${q?'Tidak ditemukan':'Belum ada item terkumpul'}</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  items.forEach(([name,item]) => {
+    const isNew = nw.includes(name);
+    const rar   = (item.rarity||'').toLowerCase();
+    const img   = item.image_url
+      ? `<img src="${item.image_url}" alt="" onerror="this.parentElement.innerHTML='📦'">`
+      : '📦';
+    const div = document.createElement('div');
+    div.className = 'lc' + (isNew?' nw':'');
+    div.innerHTML = `
+      <div class="iw">${img}</div>
+      <div class="ii">
+        <div class="in">${name}</div>
+        <div class="is r-${rar||'common'}">${item.rarity||'Unknown'}</div>
+      </div>
+      <div class="iq">
+        <div class="qt">+${item.total_quantity||0}</div>
+        <div class="qi">inv: ${item.inventory_quantity||0}</div>
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function toggleSort() {
+  sort = sort==='qty' ? 'name' : 'qty';
+  const btn = document.getElementById('sb');
+  btn.textContent = sort==='qty' ? 'QTY ↓' : 'A-Z ↑';
+  btn.className   = 'sbtn' + (sort==='name'?' on':'');
+  render();
+}
+
+async function doReset() {
+  if (!confirm('Reset semua loot?')) return;
+  try {
+    await fetch(BASE, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': API_KEY
+      },
+      body: JSON.stringify({})
+    });
+    data = {};
+    render();
+    updateStats();
+    showToast('✓ Loot direset');
+  } catch { showToast('Gagal reset'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
